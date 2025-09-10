@@ -1,0 +1,188 @@
+https://github.com/Goodluck444423/Cyborg-.git
+import tkinter as tk
+from tkinter import messagebox
+import json
+import os
+
+APP_NAME = "CYBARK"
+USER_DATA_FILE = "user_data.json"
+
+# All topic data is embedded here
+TOPIC_DATA = {
+    "Cybersecurity": {
+        "lessons": [
+            "Cybersecurity protects computers and networks from digital attacks.",
+            "Common threats: phishing, malware, ransomware.",
+            "Use strong passwords, enable 2FA, and update software."
+        ],
+        "quiz": [
+            {
+                "question": "Which is NOT a cybersecurity threat?",
+                "options": ["Phishing", "Malware", "Photosynthesis"],
+                "answer": 2
+            },
+            {
+                "question": "Which is a best practice for cybersecurity?",
+                "options": ["Use 'password' as your password", "Update software regularly", "Ignore suspicious emails"],
+                "answer": 1
+            }
+        ]
+    },
+    "Python": {
+        "lessons": [
+            "Python is a popular programming language known for its readability.",
+            "It is used for web development, automation, AI, and more.",
+            "Indentation is important in Python!"
+        ],
+        "quiz": [
+            {
+                "question": "Which keyword defines a function in Python?",
+                "options": ["func", "define", "def"],
+                "answer": 2
+            },
+            {
+                "question": "What is important for code blocks in Python?",
+                "options": ["Curly braces", "Indentation", "Semicolons"],
+                "answer": 1
+            }
+        ]
+    },
+    "Artificial Intelligence": {
+        "lessons": [
+            "Artificial Intelligence (AI) simulates human intelligence in computers.",
+            "Machine Learning is a subset of AI that learns from data.",
+            "AI is used in speech recognition, image processing, and more."
+        ],
+        "quiz": [
+            {
+                "question": "What does AI stand for?",
+                "options": ["Analog Input", "Artificial Intelligence", "Automated Interface"],
+                "answer": 1
+            },
+            {
+                "question": "Which is a subset of AI?",
+                "options": ["Machine Learning", "Database Management", "Cloud Computing"],
+                "answer": 0
+            }
+        ]
+    }
+}
+
+def load_user_data():
+    if not os.path.exists(USER_DATA_FILE):
+        return {}
+    with open(USER_DATA_FILE, "r") as f:
+        return json.load(f)
+
+def save_user_data(data):
+    with open(USER_DATA_FILE, "w") as f:
+        json.dump(data, f)
+
+class CYBARKApp:
+    def __init__(self, master):
+        self.master = master
+        master.title(APP_NAME)
+        master.geometry("500x400")
+        self.user_data = load_user_data()
+        self.topic = None
+        self.quiz = None
+        self.quiz_index = 0
+        self.quiz_score = 0
+        self.show_main_menu()
+
+    def show_main_menu(self):
+        self.clear_frame()
+        frame = tk.Frame(self.master)
+        frame.pack(padx=20, pady=20, expand=True)
+        tk.Label(frame, text=f"Welcome to {APP_NAME}!", font=("Arial", 20, "bold")).pack(pady=10)
+        tk.Label(frame, text="Select a Topic to Learn:", font=("Arial", 14)).pack(pady=5)
+        for topic in TOPIC_DATA:
+            btn = tk.Button(frame, text=topic, width=25, font=("Arial", 12), command=lambda t=topic: self.start_topic(t))
+            btn.pack(pady=5)
+        tk.Button(frame, text="View Progress", command=self.show_progress).pack(pady=10)
+        tk.Button(frame, text="Exit", command=self.master.quit).pack(pady=5)
+        self.frame = frame
+
+    def clear_frame(self):
+        for widget in self.master.winfo_children():
+            widget.destroy()
+
+    def start_topic(self, topic):
+        self.topic = topic
+        self.topic_data = TOPIC_DATA[topic]
+        self.clear_frame()
+        self.lesson_index = self.user_data.get(self.topic, 0)
+        self.show_lesson()
+
+    def show_lesson(self):
+        self.clear_frame()
+        lessons = self.topic_data["lessons"]
+        if self.lesson_index < len(lessons):
+            tk.Label(self.master, text=f"{self.topic} - Lesson {self.lesson_index + 1}", font=("Arial", 16, "bold")).pack(pady=10)
+            tk.Message(self.master, text=lessons[self.lesson_index], width=450, font=("Arial", 12)).pack(pady=20)
+            tk.Button(self.master, text="Next", width=10, command=self.next_lesson).pack(pady=10)
+        else:
+            tk.Label(self.master, text=f"{self.topic} - Lessons Completed!", font=("Arial", 16, "bold")).pack(pady=10)
+            tk.Button(self.master, text="Take Quiz", width=15, command=self.start_quiz).pack(pady=10)
+            tk.Button(self.master, text="Back to Main Menu", command=self.show_main_menu).pack(pady=5)
+
+    def next_lesson(self):
+        self.lesson_index += 1
+        self.user_data[self.topic] = self.lesson_index
+        save_user_data(self.user_data)
+        self.show_lesson()
+
+    def start_quiz(self):
+        if "quiz" not in self.topic_data or not self.topic_data["quiz"]:
+            messagebox.showinfo(f"{self.topic} Quiz", "No quiz available for this topic.")
+            self.show_main_menu()
+            return
+        self.quiz = self.topic_data["quiz"]
+        self.quiz_index = 0
+        self.quiz_score = 0
+        self.show_quiz_question()
+
+    def show_quiz_question(self):
+        self.clear_frame()
+        if self.quiz_index < len(self.quiz):
+            q = self.quiz[self.quiz_index]
+            tk.Label(self.master, text=f"Quiz: {self.topic}", font=("Arial", 16, "bold")).pack(pady=10)
+            tk.Label(self.master, text=q["question"], font=("Arial", 12)).pack(pady=10)
+            for idx, opt in enumerate(q["options"]):
+                btn = tk.Button(self.master, text=opt, width=40, font=("Arial", 11),
+                                command=lambda i=idx: self.check_quiz_answer(i))
+                btn.pack(pady=2)
+        else:
+            self.show_quiz_result()
+
+    def check_quiz_answer(self, selected):
+        q = self.quiz[self.quiz_index]
+        if selected == q["answer"]:
+            self.quiz_score += 1
+            messagebox.showinfo("Correct!", "Your answer is correct!")
+        else:
+            correct = q["options"][q["answer"]]
+            messagebox.showerror("Wrong", f"Wrong answer.\nCorrect: {correct}")
+        self.quiz_index += 1
+        self.show_quiz_question()
+
+    def show_quiz_result(self):
+        self.clear_frame()
+        tk.Label(self.master, text="Quiz Finished!", font=("Arial", 16, "bold")).pack(pady=10)
+        tk.Label(self.master, text=f"Your score: {self.quiz_score}/{len(self.quiz)}", font=("Arial", 14)).pack(pady=10)
+        tk.Button(self.master, text="Back to Main Menu", command=self.show_main_menu).pack(pady=10)
+
+    def show_progress(self):
+        self.clear_frame()
+        tk.Label(self.master, text="Your Progress", font=("Arial", 16, "bold")).pack(pady=10)
+        for topic in TOPIC_DATA:
+            progress = self.user_data.get(topic, 0)
+            lessons = TOPIC_DATA[topic]["lessons"]
+            percent = int((progress / len(lessons)) * 100) if lessons else 0
+            tk.Label(self.master, text=f"{topic}: {progress}/{len(lessons)} lessons completed ({percent}%)", font=("Arial", 12)).pack(pady=2)
+        tk.Button(self.master, text="Back to Main Menu", command=self.show_main_menu).pack(pady=10)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = CYBARKApp(root)
+    root.mainloop()
